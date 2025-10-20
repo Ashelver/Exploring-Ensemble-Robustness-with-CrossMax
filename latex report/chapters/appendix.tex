@@ -1,0 +1,70 @@
+% ----------------- APPENDIX ------------------
+
+\chapter*{Appendices} \addcontentsline{toc}{chapter}{Appendices} 
+\renewcommand{\thesection}{\Alph{section}} 
+
+\section{Pseudocode of the original CrossMax Ensemble}
+\label{alg:crossmax}
+\begin{algorithm}
+\caption{CrossMax Ensemble (Pseudocode)~\cite{fort2024ensemble}}
+\begin{algorithmic}
+\Require $Z_1, Z_2, \dots, Z_M \in \mathbb{R}^{B \times C}$ (logits from $M$ models)
+\State Stack logits into $Z \in \mathbb{R}^{B \times M \times C}$
+\State Normalize $Z$ by subtracting max logit across classes per predictor
+\State Normalize $Z$ by subtracting max logit across predictors per class
+\State Compute $k$-th largest logit per class across models
+\Ensure Class with highest $k$-th (e.g., $k=2$) largest logit
+\end{algorithmic}
+\end{algorithm}
+
+
+\section{Bound on the Size of CrossMax Prediction Sets}
+\label{appendix:crossmax-bound}
+
+Consider the CrossMax aggregation with $M$ predictors and $C$ classes.  
+Let the logits matrix be
+\[
+\mathbf{Z} \in \mathbb{R}^{M \times C},
+\]
+where the $i$-th row $\mathbf{z}_i$ corresponds to the logits from predictor $i$, and $z_{i,c}$ denotes the logit for class $c$.
+
+\paragraph{Step 1: Removing predictor dominance.}  
+For each predictor $i$, subtract its maximum logit over all classes:
+\[
+\tilde{\mathbf{z}}_{i,c} = \mathbf{z}_{i,c} - \max_{c'} \mathbf{z}_{i,c'}.
+\]
+After this normalization, each predictor’s logits contain exactly one zero (corresponding to the original maximum), while the remaining entries are strictly negative (ignoring ties). Thus, there are exactly $M$ zeros in the normalized logits matrix, one per predictor.
+
+\paragraph{Step 2: Removing class dominance.}  
+For each class $c$, subtract the maximum logit among all predictors:
+\[
+\hat{\mathbf{z}}_{i,c} = \tilde{\mathbf{z}}_{i,c} - \max_{j} \tilde{\mathbf{z}}_{j,c}.
+\]
+Since all entries $\tilde{z}_{i,c} \leq 0$, the maximum within a class is always non-positive. Two cases arise:
+\begin{itemize}
+    \item If all $\tilde{\mathbf{z}}_{i,c} < 0$, then the maximum is strictly negative. After subtraction, one predictor attains zero for class $c$, and the rest are negative.
+    \item If there exists some predictor $i$ with $\tilde{\mathbf{z}}_{i,c}=0$, then $\max_j \tilde{\mathbf{z}}_{j,c}=0$, so the logits for that class remain unchanged.
+\end{itemize}
+
+\paragraph{Step 3: $k$-th max aggregation.}  
+CrossMax selects the $k$-th largest value across predictors for each class:
+\[
+s_c = \operatorname{k\text{-}max}_{i} \ \hat{\mathbf{z}}_{i,c}.
+\]
+A class $c$ belongs to the prediction set if
+\[
+s_c = 0.
+\]
+This requires at least $k$ predictors to have $\hat{\mathbf{z}}_{i,c} = 0$ for that class.
+
+\paragraph{Bound on prediction set size.}  
+Since there are exactly $M$ zeros in total (one per predictor after Step 1), the maximal number of classes that can satisfy $s_c=0$ is bounded by
+\[
+\left\lfloor \frac{M}{k} \right\rfloor.
+\]
+
+\paragraph{Interpretation.}  
+This shows that the size of the CrossMax prediction set is \textbf{bounded above by} $\lfloor M/k \rfloor$.  
+In our experiments with $M=6$ predictors and $k=2$, the prediction set size can never exceed $3$.  
+Hence, the CrossMax rule inherently prevents excessively large ambiguous outputs, limiting uncertainty by design.
+\hfill $\square$

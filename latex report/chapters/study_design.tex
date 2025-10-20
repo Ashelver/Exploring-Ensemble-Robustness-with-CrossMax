@@ -1,0 +1,369 @@
+% ----------------- CHAPTER 3 -----------------
+\chapter{Comparative Study Design}
+
+\section{Study Objectives and Comparative Approach}
+\indent
+
+This chapter presents the design of a comparative study between \textit{LP certified models} and \textit{standard non-certified models}, both in their individual form and as ensembles. The goal is to evaluate the impact of certified training on robustness, prediction diversity and confidence estimation under adversarial settings.
+
+We select \textit{LP certification} as the representative certified defense, since it provides \emph{provable robustness guarantees} against $L_\infty$-bounded perturbations by formulating the verification of adversarial robustness as a linear optimization problem. Compared to heuristic empirical defenses, LP-based certification is both mathematically rigorous and practically effective on moderate-scale datasets such as CIFAR-10, making it a widely adopted benchmark in robustness research.
+
+All robustness training and adversarial perturbations considered in this study are constrained under the $L_\infty$ norm:
+\[
+\|\delta\|_\infty \leq \epsilon,
+\]
+which aligns with the perturbation model used in the LP certification framework and is widely adopted in adversarial robustness research for its interpretability and practical relevance in image domains.
+
+
+
+
+The study focuses on four configurations:
+\begin{itemize}
+    \item Single standard model (non-certified), representing typical training without explicit robustness guarantees.
+    \item Single LP-trained model, where robustness guarantees are provided via convex relaxations during training.
+    \item Standard ensemble model, aggregating multiple independently trained standard models to explore diversity benefits.
+    \item LP-trained ensemble model, aggregating multiple certified models to investigate the interplay between certification and ensembling.
+\end{itemize}
+
+The comparison is performed on the CIFAR-10 dataset~\cite{krizhevsky2009learning}, ensuring consistent model architectures across LP and standard variants to isolate the effect of certified training. Evaluations are conducted across multiple perturbation strengths to capture robustness trends at varying threat levels.
+
+For ensemble methods, beyond robustness accuracy and diversity, we also assess the prediction confidence by measuring the proportion of single-label outputs produced by the CrossMax aggregation method compared to ambiguous multi-label outputs (details in Section~\ref{sec:evaluation dimensions}). This metric serves as a novel confidence-related indicator, potentially reflecting ensemble certainty under adversarial perturbations.
+
+The approach is motivated by two main \textbf{objectives}:
+\begin{itemize}
+
+    \item To understand how certified robustness properties at the networks  level in the ensemble propagate or improve when models are combined into ensembles.
+    \item To investigate whether confidence-related signals emerging from advanced aggregation strategies like CrossMax can provide complementary robustness insights beyond robust accuracy.
+\end{itemize}
+
+Together, these analyses aim to deepen understanding of the trade-offs and synergies between certification, ensembling, and confidence estimation in the pursuit of more reliable adversarial defenses.
+
+\section{Evaluation Dimensions and Formal Definition}
+\label{sec:evaluation dimensions}
+\indent
+
+
+To ensure clarity and reproducibility, we define the evaluation dimensions as follows:
+
+\subsection{Robustness Accuracy}
+\indent
+
+In adversarial machine learning, robustness quantifies a model's ability to maintain correct predictions under bounded perturbations of the input.  
+Following the formalism of \cite{kielhofer2025robustness}, we adopt the $\ell_\infty$ norm as the perturbation metric throughout this work.  
+For a perturbation size $\epsilon$, robust accuracy can be formally defined as follows:
+
+\begin{definition}[Robust accuracy]
+Consider a neural network $f:\mathbb{R}^n \to \mathbb{N}$ and a perturbation size $\epsilon$. 
+Robust accuracy indicates the probability that the network is $\epsilon$-robust for an arbitrary classified reference input $x_0$. 
+This is denoted as
+\begin{equation}
+P(\epsilon) := P\left(\{x_0 : \|x - x_0\| < \epsilon \Rightarrow f(x) = y_{x_0}\}\right).
+\end{equation}
+\end{definition}
+
+\begin{definition}[Estimator of robust accuracy]
+Given a test set $D$ that was not used for training, an estimator for robust accuracy is obtained by
+\begin{equation}
+P_D(\epsilon) := \frac{|\{x_0 \in D : \forall x \in \mathbb{R}^n,\ \|x - x_0\| < \epsilon \Rightarrow f(x) = y_{x_0}\}|}{|D|}.
+\end{equation}
+\end{definition}
+
+
+Following \cite{kielhofer2025robustness}, we rigorously distinguish between two related but distinct metrics:  
+\emph{empirical robust accuracy}, measured under adaptive adversarial attacks such as PGD or AutoAttack; and  
+\emph{certified robust accuracy}, computed via linear LP verification~\cite{wong2018provable,gowal2018effectiveness} to provide a guaranteed lower bound within a specified perturbation budget.  
+This deliberate distinction avoids ambiguity with alternative terms (e.g., astuteness or adversarial accuracy) and enables direct comparison between attack-based evaluation and formally verified guarantees. \textbf{In the following content, all experimental robust accuracy refers to estimator of robust accuracy, and certified robust accuracy will be specifically indicated.}
+
+\subsection{Ensemble Diversity and Confidence Measures}
+\label{sec:diversity-confidence}
+
+\indent
+
+To analyze the relationship between ensemble diversity, confidence, and robustness, we evaluate five complementary metrics:
+\emph{(1) prediction diversity}, 
+\emph{(2) softmax confidence}, 
+\emph{(3) prediction entropy}, 
+\emph{(4) mutual information (MI)}, 
+and \emph{(5) CrossMax Confidence}(details in Section~\ref{sec:crossmax confidence}).
+These measures are computed on both clean and adversarial examples, enabling a quantitative comparison of their behaviors under distributional shifts.
+
+The use of prediction diversity as a robustness metric builds upon prior work, such as Pang et al.~\cite{pang2019improving}, who introduce diversity among non-maximal predictions to improve ensemble adversarial robustness, and Abbasi et al.~\cite{abbasi2020toward}, who demonstrate the utility of diversity in detecting adversarial samples. On the other hand, mutual information (MI) as a tool to characterize model uncertainty under attack has been explored by Zhou et al.~\cite{zhou2022improving}, providing insight into changes in model confidence. The broader theoretical relationship between ensemble diversity, robust accuracy, and deception resilience is comprehensively discussed in Liu et al.~\cite{liu2019deep}, offering foundational support for our multi-metric evaluation framework. Here are the exact definition of those metrics mentioned above in our experiments:
+
+
+\paragraph{Prediction Diversity}
+For an ensemble of $M$ classifiers $\{f_{\theta_m}\}_{m=1}^M$, prediction diversity quantifies the pairwise disagreement rate:
+\begin{equation}
+\text{Div} = \frac{1}{M(M-1)} \sum_{1 \leq i \neq j \leq M} 
+\mathbb{P}\big( f_{\theta_i}(x) \neq f_{\theta_j}(x) \big).
+\end{equation}
+
+where $\mathbb{P}$ denotes the empirical probability over the input distribution (e.g., the test set).
+A higher value indicates greater heterogeneity among ensemble members, 
+i.e., larger diversity in their learned decision boundaries and predictive behaviors. 
+Such diversity reduces the chance that a single adversarial perturbation can simultaneously fool all models, 
+thereby improving robustness against transferable adversarial examples.
+However, excessive diversity may harm clean accuracy if individual models disagree too often on clean inputs.
+
+\paragraph{Softmax Confidence}
+Similar to the definition in~\cite{guo2017calibration}, 
+for a single model $f_{\theta_m}$ producing logits 
+$\mathbf{z}^{(m)}(x) = (z^{(m)}_0(x), \ldots, z^{(m)}_{K-1}(x))$ 
+over $K$ classes, the single-model softmax confidence is defined as the maximum softmax probability:
+
+\begin{equation}
+\text{Conf}_{\mathrm{Soft}}^{(m)}(x) 
+= \max_{c \in \{0, \ldots, K-1\}} 
+\frac{\exp(z_c^{(m)}(x))}{\sum_{j=0}^{K-1} \exp(z_j^{(m)}(x))}.
+\label{eq:soft_conf_single}
+\end{equation}
+
+For an ensemble with $M$ members, we define the ensemble softmax confidence as the member-wise average of the single-model confidences:
+
+\begin{equation}
+\overline{\text{Conf}}_{\mathrm{Soft}}(x) 
+= \frac{1}{M} \sum_{m=1}^{M} \text{Conf}_{\mathrm{Soft}}^{(m)}(x),
+\label{eq:soft_conf_ensemble}
+\end{equation}
+
+\noindent which reflects the average confidence across all models, without first combining logits.
+
+
+
+This reflects the aggregate confidence across models, 
+while disregarding potential disagreement among individual members.
+Note that this differs from computing the maximum probability after ensemble averaging, 
+and is chosen here to explicitly capture individual member confidence.
+
+\paragraph{Prediction Entropy}
+Prediction entropy measures the uncertainty of the ensemble’s averaged softmax output:
+\begin{equation}
+H(x) = - \sum_{k=1}^K p_k(x) \log p_k(x),
+\quad
+p_k(x) = \frac{1}{M} \sum_{m=1}^M \sigma_k(\mathbf{z}_m(x)).
+\end{equation}
+where $\sigma_k(\cdot)$ denotes the softmax probability assigned to class $k$ by a model, 
+and $p_k(x)$ is the ensemble-averaged predictive probability for class $k$.
+A higher entropy value indicates greater predictive uncertainty and weaker class separation, 
+while a lower entropy suggests stronger consensus and more confident predictions across the ensemble~\cite{liu2019deep}.
+
+\paragraph{Mutual Information (MI)}
+Mutual Information, motivated by Bayesian ensemble theory, decomposes predictive uncertainty into two components: 
+\emph{aleatoric uncertainty} (inherent data noise that cannot be reduced) and 
+\emph{epistemic uncertainty} (uncertainty due to limited model knowledge). 
+Formally, it is defined as
+\begin{equation}
+\text{MI}(x) = H(x) - \frac{1}{M} \sum_{m=1}^M H_m(x),
+\end{equation}
+
+where $H(x)$ is the total predictive entropy as defined above, and
+
+\begin{equation}
+H_m(x) = - \sum_{k=1}^K \sigma_k(\mathbf{z}_m(x)) \log \sigma_k(\mathbf{z}_m(x))
+\end{equation}
+
+is the entropy of the $m$-th model’s predictive distribution.
+A higher MI indicates greater disagreement among models, thereby capturing epistemic uncertainty.
+
+
+
+
+\section{LP Models and Dataset Setting}
+\label{sec:methodology-models}
+\indent
+
+Following the setup in \cite{wong2018scaling}, we adopt the CIFAR-10 dataset for all experiments. 
+The LP-trained models are obtained from the authors’ released pre-trained checkpoints, covering three architectures:
+\begin{itemize}
+    \item \textbf{Small}: 2 convolutional layers (16, 32 filters) and 1 fully connected layer (100 units).
+    \item \textbf{Large}: 4 convolutional layers (32, 32, 64, 64 filters) and 2 fully connected layers (512 units).
+    \item \textbf{ResNet}: 4 residual blocks (16, 16, 32, 64 filters) following \cite{zagoruyko2016wide}.
+\end{itemize}
+For each architecture, two LP-trained versions are available:
+\begin{itemize}
+    \item $\epsilon=2.0/255$ (denoted \textbf{2px} in the following content)
+    \item $\epsilon=8.0/255$ (denoted \textbf{8px} in the following content)
+\end{itemize}
+
+\begin{table}[h]
+\centering
+\caption{Certified robust and clean accuracy of LP-trained on CIFAR-10 test set at different perturbation budgets.  
+Certified robust accuracy values are reported at each model’s certified perturbation level.}
+\label{tab:lp_cert_acc_detailed}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Model} & \textbf{Eps.} & \textbf{CRA (\%)} & \textbf{Clean Acc. (\%)} \\
+\midrule
+Small   & $2/255$ & 46.41 & 60.86 \\
+Large   & $2/255$ & 52.59 & 67.71 \\
+ResNet  & $2/255$ & 51.52 & 66.33 \\
+Small   & $8/255$ & 20.54 & 27.60 \\
+Large   & $8/255$ & 16.03 & 19.01 \\
+ResNet  & $8/255$ & 21.50 & 27.05 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\section{Ensemble Methods}
+\indent
+
+We focus on three aggregation rules due to their representativeness and contrastive nature. Majority Voting~\cite{dietterich2000ensemble} serves as the classical baseline, Logits Averaging~\cite{lakshminarayanan2017simple} captures probabilistic information from individual models, and CrossMax~\cite{fort2024ensemble} represents a robustness-oriented approach that we aim to investigate. This selection allows us to compare traditional ensemble strategies with our proposed method under a unified framework.
+
+\subsection{Majority Voting}  
+Given a set of $M$ base models, each producing a predicted class label $\hat{y}_m$ for an input, the Majority Voting ensemble outputs the class with the highest frequency among these predictions:
+\begin{equation}
+    \hat{y}_{\small{MV}} = \arg\max_{c \in \mathcal{Y}} \sum_{m=1}^M \mathbb{I}(\hat{y}_m = c),
+\end{equation}
+where $\mathbb{I}(\cdot)$ is the indicator function.
+
+\noindent
+\textbf{Limitation.}  
+When facing an adaptive adversary, the attacker does not necessarily need to fool all the networks inside the ensemble model simultaneously.
+Instead, it is sufficient to target a majority subset of comparatively ``weaker'' models whose decisions dominate the vote.
+This makes Majority Voting potentially vulnerable if the ensemble contains several models with similar failure modes.
+
+\subsection{Logits Averaging}  
+Each base model outputs a logit vector $\mathbf{z}_m = (z_{m,1}, \dots, z_{m,c}) \in \mathbb{R}^C$, 
+where $z_{m,c}$ denotes the logit for class $c$.  
+The ensemble average logit vector is computed as
+\begin{equation}
+    \bar{\mathbf{z}} = \frac{1}{M} \sum_{m=1}^M \mathbf{z}_m,
+\end{equation}
+whose $c$-th component is $\bar{z}_c = \frac{1}{M}\sum_{m=1}^N z_{m,c}$. 
+The final prediction is then obtained as
+\begin{equation}
+    \hat{y}_{\text{LA}} = \arg\max_{c \in \mathcal{Y}} \bar{z}_c.
+\end{equation}
+
+
+\noindent
+\textbf{Limitation.}  
+Because the magnitude of logits can vary significantly across models, some models may exert disproportionately large influence on the averaged logits.
+An adversary can exploit this by preferentially attacking such ``high-impact'' models, shifting the ensemble decision even without altering the outputs of the other members.
+
+
+\subsection{CrossMax}
+\label{sec:crossmax}
+\indent
+
+We now present the CrossMax aggregation rule, designed to mitigate both predictor dominance (one model overwhelmingly influencing the final decision) and class dominance (one class consistently winning regardless of model variation). Let 
+\[
+\mathbf{Z} \in \mathbb{R}^{M \times C}
+\]
+denote the logits matrix, where $M$ is the number of predictors and $C$ is the number of classes. The $i$-th row $\mathbf{z}_i$ corresponds to the logits from the $i$-th predictor.
+
+The algorithm of the original CrossMax method proposed by Fort and Lakshminarayanan~\cite{fort2024ensemble} is in Appendix~\ref{alg:crossmax}.  
+In our work, we have extended this approach by introducing two additional post-processing strategies to handle ambiguous predictions where multiple classes share the $k$-th largest logit value.  
+Here are the detailed process and two strategies:
+
+
+
+\paragraph{Step 1: Removing predictor dominance.}  
+For each predictor $i$, we normalize its logits vector $\mathbf{z}_i$ by subtracting its maximum value:
+\[
+\tilde{\mathbf{z}}_i = \mathbf{z}_i - \max_{c} \mathbf{z}_{i,c}.
+\]
+This ensures that no single predictor's scale or offset can disproportionately affect the aggregation.
+
+\paragraph{Step 2: Removing class dominance.}  
+We normalize each column (class) across all predictors by subtracting the maximum over predictors:
+\[
+\hat{\mathbf{z}}_{i,c} = \tilde{\mathbf{z}}_{i,c} - \max_{j} \tilde{\mathbf{z}}_{j,c}.
+\]
+This removes the bias where certain classes might consistently have higher raw logits across predictors.
+
+\paragraph{Step 3: $k$-th max aggregation.}  
+After both normalizations, the CrossMax rule computes the $k$-th largest value across predictors for each class:
+\[
+s_c = \operatorname{k\text{-}max}_{i} \ \hat{\mathbf{z}}_{i,c}.
+\]
+The final predicted class is
+\[
+\hat{y} = \arg\max_{c} s_c.
+\]
+Here, $k$ is a tunable hyperparameter that controls the balance between robustness and sensitivity: $k=1$ reduces to the classical max rule (most aggressive selection), larger $k$ values give more weight to consensus among predictors.
+
+\paragraph{Ambiguous versus Exact Prediction:}
+When computing the $k$-th largest value per class, ties may occur:
+\begin{itemize}
+    \item \emph{Ambiguous prediction:} All classes sharing the $k$-th largest value are retained as possible outputs.
+    \item \emph{Exact prediction:} If multiple classes tie for the $k$-th largest value, we break the tie as follows:
+    \begin{enumerate}
+        \item Randomly select $M' \in \{5,4,3\}$ predictors from the $M=6$ base models.
+        \item Re-run CrossMax on the selected subset to obtain a predicted class.
+        \item Repeat the above until $M'$ predictions are collected.
+        \item Apply majority voting on the resulting $M=6$ predictions to obtain the final output.
+    \end{enumerate}
+\end{itemize}
+This two-level selection scheme balances robustness against adversarial perturbations with the need for a deterministic final prediction.  
+As proved in Appendix~\ref{appendix:crossmax-bound}, the maximum size of such ambiguous prediction sets is inherently limited by the number of base models and the choice of $k$ and $M$.
+
+\begin{table}[h]
+\centering
+\caption{Example of logits aggregation for a single input across different ensemble methods under an adversarial perturbation (target class = 0).}
+\label{tab:ensemble_example}
+\renewcommand{\arraystretch}{1.2}
+\small
+\begin{tabular}{lcccccccccc}
+\toprule
+\textbf{Model/Method} & \multicolumn{10}{c}{\textbf{Logits per Class}} \\
+\cmidrule(lr){2-11}
+ & 0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 \\
+\midrule
+ResNet\_8px   & 0.949 & 0.645 & -0.302 & -0.599 & -0.781 & -0.658 & -1.470 & -0.339 & \underline{\textbf{1.526}} & 1.029 \\
+ResNet\_2px   & \underline{\textbf{4.712}} & -0.705 & 1.831 & -1.449 & 1.285 & -2.892 & -3.150 & -1.248 & 2.965 & -1.350 \\
+Large\_8px    & 1.003 & 0.173 & -0.186 & -0.500 & -0.671 & -0.779 & -0.867 & 0.109 & \underline{\textbf{1.026}} & 0.691 \\
+Large\_2px    & \underline{\textbf{5.777}} & -0.457 & 1.798 & -1.821 & 0.262 & -2.488 & -2.819 & -1.751 & 2.907 & -1.407 \\
+Small\_8px    & 1.609 & 0.423 & 0.085 & -0.515 & -0.545 & -0.727 & -1.784 & -0.729 & \underline{\textbf{1.767}} & 0.414 \\
+Small\_2px    & 2.880 & -0.929 & 1.646 & -1.195 & 1.370 & -1.808 & -2.957 & -0.931 & \underline{\textbf{3.246}} & -1.323 \\
+\midrule
+\textit{Logits Averaging} & \underline{\textbf{2.822}} & -0.142 & 0.979 & -1.013 & 0.153 & -1.892 & -2.341 & -0.815 & 2.240 & -0.658 \\
+\textit{Majority Voting}  & 2 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & \underline{\textbf{4}} & 0 \\
+\textit{CrossMax}         & \underline{\textbf{0.000}} & -0.029 & -0.388 & -0.599 & -0.179 & -0.379 & -1.103 & -0.949 & \underline{\textbf{0.000}} & -0.163 \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.5em}
+\footnotesize
+\raggedright
+\textbf{Note:} This example corresponds to an adversarially perturbed input targeting class~0. 
+Under this setting, CrossMax produces a prediction set rather than a single label. 
+For the \textit{ambiguous} variant, the prediction set is $\{0, 8\}$, reflecting two equally plausible classes after aggregation. 
+For the \textit{exact} variant, only class~0 is retained in the prediction set. 
+In contrast, logits averaging selects class~0 as the top-1 prediction, while majority voting predicts class~8 due to the highest vote count.
+\end{table}
+
+
+\paragraph{CrossMax Confidence}
+\label{sec:crossmax confidence}
+We evaluate the \emph{CrossMax Confidence} of the ensemble, which quantifies the proportion of test inputs for which the CrossMax-Ambiguous set contains exactly one label.  
+Formally, if $\mathcal{A}(x)$ denotes the prediction set produced by CrossMax-Ambiguous for input $x$, the CrossMax Confidence is defined as:
+\[
+\text{Conf}_{\text{CrossMax}} = \frac{1}{|\mathcal{D}_{\text{test}}|} \sum_{x \in \mathcal{D}_{\text{test}}} \mathbb{I}\left[|\mathcal{A}(x)| = 1\right],
+\]
+where $\mathbb{I}[\cdot]$ is the indicator function and $\mathcal{D}_{\text{test}}$ denotes the test dataset.
+A high CrossMax Confidence indicates that the ensemble, under the CrossMax aggregation, produces an unambiguous decision for most inputs, while a lower value suggests increased prediction set size and hence greater ambiguity.
+
+
+
+\section{Fair Comparison Protocol}
+\indent
+
+To ensure that the comparative analysis between LP-based ensembles and standard ensembles is both fair and reproducible, a rigorous evaluation protocol is followed. This protocol is designed to eliminate potential confounding factors that could bias the results, allowing any observed differences to be attributed solely to the ensemble strategy under investigation. The key principles are as follows:
+
+\begin{itemize}
+    \item \textbf{Identical Dataset:} All evaluations are conducted on the CIFAR-10 test set, which consists of 10,000 fixed images. The same set of images is used across all models and experiments to prevent variability arising from data selection.
+    
+    \item \textbf{Matched Architectures:} For every LP-trained model, there exists a corresponding standard model with the exact same architecture (e.g., ResNet, Large, Small variants). This ensures that any performance difference is not due to architectural capacity or depth.
+    
+    \item \textbf{Equal Ensemble Size:} Both LP and standard ensembles are composed of exactly six networks inside ensemble models. This parity prevents the ensemble size from acting as a confounding variable, thereby isolating the effect of the training paradigm and aggregation strategy.
+    
+    \item \textbf{Consistent Training Data:} All models, whether LP or standard, are trained on the same CIFAR-10 training set, without differences in data preprocessing or augmentation. No additional data sources or synthetic examples are introduced, ensuring that the models' knowledge comes from an identical distribution.
+    
+    \item \textbf{Uniform Attack Protocol:} Adversarial robustness evaluation employs the same attack methods (specifically, AutoAttack) and identical perturbation budgets for all models. This guarantees that robustness measurements are directly comparable and unaffected by attack configuration biases.
+    
+    \item \textbf{Reproducibility and Random Seed Control:} All experiments are performed with fixed random seeds for data loading, model initialization, and attack generation. This minimizes stochastic variation in the results.
+    
+    \item \textbf{Identical Evaluation Metrics:} Performance is assessed using the same set of metrics: clean accuracy and adversarial accuracy, under identical evaluation conditions.
+\end{itemize}
+By adhering to this protocol, the comparative study ensures that the only variable under investigation is the ensemble composition and aggregation method, enabling a fair and unbiased evaluation of LP-based ensembles versus their standard counterparts.

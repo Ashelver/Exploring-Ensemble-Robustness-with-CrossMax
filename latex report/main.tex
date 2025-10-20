@@ -1,0 +1,208 @@
+\documentclass[10pt]{report}
+
+% ---------- Package Setup ----------
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{cite}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{tocloft}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{setspace}
+\usepackage{soul}
+
+
+\newcommand{\rs}[1]{\noindent{\color{red}\textbf{RS:} #1}}
+% \newcommand{\hl}[1]{\noindent{\color{blue}\textbf{HL:} #1}}
+\newcommand{\rev}[1]{\textcolor{red}{#1}}
+\newcommand{\mm}[1]{\noindent{\color{cyan}\textbf{MM:} #1}}
+
+\setstretch{1.5}
+
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=black,
+    urlcolor=black
+}
+
+
+% ---------- Page Margin ----------
+\geometry{
+ a4paper,
+ total={6in, 9in},
+ left=1.2in,
+ right=1.2in,
+ top=1.2in,
+}
+
+
+% ---------- Chapter/Section Format ----------
+
+% Chapter title format
+\titleformat{\chapter}[hang]
+  {\normalfont\large\bfseries}
+  {\thechapter\ } % Add a space after the number
+  {0pt}
+  {}
+
+% Adjust spacing before/after chapter titles
+\titlespacing*{\chapter}{0pt}{-10pt}{20pt}
+
+% Section title format
+\titleformat{\section}
+  {\large\bfseries}
+  {\thesection}{1em}{}
+
+% Adjust spacing between sections in TOC
+\setlength{\cftbeforesecskip}{6pt}
+
+% ---------- TOC / List Titles ----------
+
+% Font size of Contents / List of Figures / List of Tables
+\renewcommand{\cfttoctitlefont}{\large\bfseries}
+\renewcommand{\cftloftitlefont}{\large\bfseries}
+\renewcommand{\cftlottitlefont}{\large\bfseries}
+
+% Vertical spacing between list titles and top of the page
+\setlength{\cftbeforetoctitleskip}{-5pt}   % For Table of Contents
+\setlength{\cftbeforeloftitleskip}{-5pt}   % For List of Figures
+\setlength{\cftbeforelottitleskip}{-5pt}   % For List of Tables
+
+
+
+
+
+
+
+
+
+
+% --------- preamble -----------
+\usepackage{amsthm} 
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{estimator}[definition]{Estimator}
+
+
+
+
+
+
+
+% ---------- Document ----------
+\begin{document}
+\pagenumbering{gobble}
+
+% ---------- Title Page ----------
+\begin{titlepage}
+\centering
+{\large \textbf{\MakeUppercase{Exploring Ensemble Robustness with CrossMax: From Provable Defenses to Confidence Analysis}}} \\[0.8cm]
+
+
+\centering{\large by \\ Hao Luo} \\
+Bachelor of Engineering, The Chinese University of Hong Kong, Shenzhen, 2024 \\ [2cm]
+
+\large A thesis \\
+presented to Toronto Metropolitan University \\ [0.5cm]
+in partial fulfillment of the \\
+requirements for the degree of \\
+
+{\large Master of Engineering} \\
+in the program of \\
+Electrical, Computer, and Biomedical Engineering \\[2cm]
+
+Toronto, Ontario, Canada, August 2025 \\[2cm]
+
+\copyright\ Hao Luo, 2025
+
+
+
+\end{titlepage}
+
+
+\clearpage
+\pagenumbering{roman}   % 前置部分用小写罗马数字
+\setcounter{page}{2}    % 从(ii)开始
+
+
+
+\begin{center}
+\textbf{AUTHOR’S DECLARATION FOR ELECTRONIC SUBMISSION OF A THESIS}
+\end{center}
+
+\vspace{1em}
+
+\indent I hereby declare that I am the sole author of this thesis. This is a true copy of the thesis, including  
+any required final revisions, as accepted by my examiners.
+
+\noindent I authorize Toronto Metropolitan University to lend this thesis to other institutions or individuals for the  
+purpose of scholarly research.
+
+\noindent I further authorize Toronto Metropolitan University to reproduce this thesis by photocopying or by other  
+means, in total or in part, at the request of other institutions or individuals for the purpose of scholarly  
+research.
+
+\noindent I understand that my thesis may be made electronically available to the public.
+\clearpage
+
+\newpage
+
+\clearpage
+
+
+\begin{center}
+\textbf{Abstract}
+\end{center}
+
+\begin{doublespacing}
+
+\indent
+
+Adversarial robustness remains a critical challenge in deep learning, where small perturbations can severely degrade model performance. Ensemble methods offer potential by leveraging model diversity, yet their robustness trade-offs are not fully understood. This project conducts an empirical study of ensemble robustness against strong white-box attacks on CIFAR-10, focusing on ensembles built from models trained via standard procedures and Linear Programming (LP).
+
+We introduce CrossMax, a novel aggregation technique producing set-valued predictions to capture uncertainty under attack, along with a derived CrossMax Confidence measure. Under adversarial perturbations, ensembles achieve higher robust accuracy than their single-model counterparts, highlighting the benefit of model diversity under strong attacks. In particular, LP-trained ensembles, despite lower clean accuracy, consistently surpass standard-trained ones in robustness and also exhibit greater prediction diversity. Notably, CrossMax-Ambiguous ensembles achieve up to 15\% higher robust accuracy than traditional voting schemes, particularly under larger perturbation budgets. Furthermore, CrossMax Confidence reflects adversarial sensitivity more reliably than Softmax Confidence, providing a practical indicator of robustness.
+
+This study demonstrates that combining LP training with CrossMax aggregation enhances adversarial robustness beyond single LP models, highlighting the promise of uncertainty-aware ensemble methods for advancing defense strategies.
+
+\end{doublespacing}
+\clearpage
+
+
+
+\tableofcontents
+
+\clearpage
+
+
+\listoffigures
+
+\clearpage
+
+\listoftables
+
+
+
+
+\include{chapters/introduction}
+\include{chapters/literature_review}
+\include{chapters/study_design}
+\include{chapters/experiment}
+\include{chapters/conclusion_future}
+\include{chapters/appendix}
+
+
+% ----------------- REFERENCES -----------------
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}
